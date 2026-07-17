@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>戰國野望：攻城掠地</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&amp;display=swap');
+body { font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif; }
+.territory-card { transition: all 0.2s ease; }
+.territory-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1); }
+.log-entry { animation: fadeIn 0.3s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+.sengoku-bg { background: linear-gradient(135deg, #1a2633 0%, #0f1620 100%); }
+</style>
+</head>
+<body class="bg-[#0f1620] text-[#a0d8ff]">
+<div class="max-w-7xl mx-auto p-4">
+<!-- Header -->
+<div class="flex justify-between items-center mb-6">
+<div>
+<h1 class="text-4xl font-bold flex items-center gap-3">
+<i class="fa-solid fa-chess-rook text-amber-400"></i> 
+戰國野望
+</h1>
+<p class="text-amber-300 text-sm">攻城掠地・文字戰略版（靈感自《信長的野望》）</p>
+</div>
+<div class="flex items-center gap-4">
+<div id="date-display" class="bg-[#1a2633] px-4 py-2 rounded-lg text-center border border-[#3a7ca5]">
+<div id="year-season" class="text-xl font-bold"></div>
+<div class="text-xs text-[#77c7ff]">回合 <span id="turn-count">1</span></div>
+</div>
+<button onclick="restartGame()" 
+class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2">
+<i class="fa-solid fa-redo"></i> 重新開始
+</button>
+</div>
+</div>
+
+<!-- Status Bar -->
+<div class="bg-[#1a2633] border border-[#3a7ca5] rounded-xl p-4 mb-6">
+<div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+<div class="flex items-center gap-3">
+<i class="fa-solid fa-coins text-yellow-400 text-2xl w-8"></i>
+<div>
+<div class="text-xs text-[#77c7ff]">金錢</div>
+<div id="gold" class="text-2xl font-bold text-yellow-400">800</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<i class="fa-solid fa-wheat-awn text-amber-300 text-2xl w-8"></i>
+<div>
+<div class="text-xs text-[#77c7ff]">米糧</div>
+<div id="rice" class="text-2xl font-bold text-amber-300">450</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<i class="fa-solid fa-users text-red-400 text-2xl w-8"></i>
+<div>
+<div class="text-xs text-[#77c7ff]">兵力</div>
+<div id="soldiers" class="text-2xl font-bold text-red-400">180</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<i class="fa-solid fa-heart text-pink-400 text-2xl w-8"></i>
+<div>
+<div class="text-xs text-[#77c7ff]">士氣</div>
+<div id="morale" class="text-2xl font-bold text-pink-400">72</div>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<i class="fa-solid fa-map-marked text-emerald-400 text-2xl w-8"></i>
+<div>
+<div class="text-xs text-[#77c7ff]">領地控制</div>
+<div id="control" class="text-2xl font-bold text-emerald-400">1/5</div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+<!-- Territories Grid -->
+<div class="lg:col-span-7">
+<h2 class="text-xl font-bold mb-3 flex items-center gap-2">
+<i class="fa-solid fa-globe"></i> 領地地圖
+</h2>
+<div id="territories-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+<!-- JS will populate cards here -->
+</div>
+</div>
+
+<!-- Action Panel + Log -->
+<div class="lg:col-span-5 space-y-4">
+<!-- Global Actions -->
+<div class="bg-[#1a2633] border border-[#3a7ca5] rounded-xl p-4">
+<h3 class="font-bold mb-3 flex items-center gap-2">
+<i class="fa-solid fa-hammer"></i> 全局行動
+</h3>
+<div class="grid grid-cols-1 gap-2">
+<button onclick="recruitSoldiers()" 
+class="flex justify-between items-center px-4 py-3 bg-[#2a3a4f] hover:bg-[#3a5a7f] rounded-lg text-left">
+<div>
+<div class="font-medium">徵兵</div>
+<div class="text-xs text-[#77c7ff]">花費 120 金錢，增加 40 兵力</div>
+</div>
+<i class="fa-solid fa-user-plus text-xl"></i>
+</button>
+
+<button onclick="trainTroops()" 
+class="flex justify-between items-center px-4 py-3 bg-[#2a3a4f] hover:bg-[#3a5a7f] rounded-lg text-left">
+<div>
+<div class="font-medium">訓練軍隊</div>
+<div class="text-xs text-[#77c7ff]">花費 80 米糧 + 60 金錢，提升士氣</div>
+</div>
+<i class="fa-solid fa-dumbbell text-xl"></i>
+</button>
+</div>
+</div>
+
+<!-- Event Log -->
+<div class="bg-[#1a2633] border border-[#3a7ca5] rounded-xl p-4 flex flex-col h-[320px]">
+<h3 class="font-bold mb-2 flex items-center gap-2">
+<i class="fa-solid fa-scroll"></i> 戰報紀錄
+</h3>
+<div id="log" class="flex-1 overflow-y-auto text-sm space-y-1 pr-2 custom-scroll">
+<!-- JS appends log entries -->
+</div>
+</div>
+
+<!-- End Turn Button -->
+<button onclick="endTurn()" 
+class="w-full py-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xl font-bold rounded-xl flex items-center justify-center gap-3 shadow-lg">
+<i class="fa-solid fa-forward"></i> 
+結束本回合（結算 + 敵軍行動）
+</button>
+</div>
+</div>
+
+<div class="mt-6 text-center text-xs text-[#77c7ff]">
+提示：優先開發「尾張」增加收入 → 徵兵擴軍 → 攻打鄰近領地。敵軍會反擊邊境領地，注意防守！
+</div>
+</div>
+
+<script>
+// ==================== GAME STATE ====================
+let gameState = {
+year: 1560,
+seasonIndex: 0, // 0=春, 1=夏, 2=秋, 3=冬
+turn: 1,
+gold: 800,
+rice: 450,
+soldiers: 180,
+morale: 72,
+territories: [
+{ id: 1, name: "尾張", owner: "player", riceProd: 85, goldProd: 45, fortLevel: 25 },
+{ id: 2, name: "美濃", owner: "enemy", riceProd: 60, goldProd: 30, fortLevel: 18 },
+{ id: 3, name: "三河", owner: "enemy", riceProd: 55, goldProd: 28, fortLevel: 15 },
+{ id: 4, name: "遠江", owner: "enemy", riceProd: 50, goldProd: 25, fortLevel: 12 },
+{ id: 5, name: "駿河", owner: "enemy", riceProd: 70, goldProd: 35, fortLevel: 22 }
+],
+connections: {
+1: [2, 3],
+2: [1, 4],
+3: [1, 5],
+4: [2],
+5: [3]
+}
+};
+
+const seasons = ["春", "夏", "秋", "冬"];
+
+function getCurrentSeason() {
+return seasons[gameState.seasonIndex];
+}
+
+function updateDateDisplay() {
+document.getElementById("year-season").innerHTML = 
+`${gameState.year} 年 <span class="text-amber-300">${getCurrentSeason()}</span>`;
+document.getElementById("turn-count").textContent = gameState.turn;
+}
+
+function updateStatus() {
+document.getElementById("gold").textContent = gameState.gold;
+document.getElementById("rice").textContent = gameState.rice;
+document.getElementById("soldiers").textContent = gameState.soldiers;
+document.getElementById("morale").textContent = gameState.morale;
+
+const playerCount = gameState.territories.filter(t => t.owner === "player").length;
+document.getElementById("control").textContent = `${playerCount}/5`;
+}
+
+// ==================== LOG ====================
+function addLog(message, type = "normal") {
+const logDiv = document.getElementById("log");
+const entry = document.createElement("div");
+entry.className = `log-entry p-2 rounded text-sm ${type === "victory" ? "bg-emerald-900/40 text-emerald-300" : 
+type === "defeat" ? "bg-red-900/40 text-red-300" : 
+type === "important" ? "bg-amber-900/30 text-amber-300" : "bg-[#0f1620]"}`;
+entry.innerHTML = message;
+logDiv.appendChild(entry);
+logDiv.scrollTop = logDiv.scrollHeight;
+}
+
+// ==================== TERRITORY RENDER ====================
+function renderTerritories() {
+const grid = document.getElementById("territories-grid");
+grid.innerHTML = "";
+
+gameState.territories.forEach((terr, index) => {
+const isPlayer = terr.owner === "player";
+const isBorder = isBorderTerritory(terr.id);
+
+const card = document.createElement("div");
+card.className = `territory-card bg-[#1a2633] border-2 rounded-xl p-4 ${isPlayer ? "border-emerald-500" : "border-red-500/70"}`;
+
+let buttonsHTML = "";
+
+if (isPlayer) {
+buttonsHTML = `
+<button onclick="developTerritory(${index})" 
+class="w-full mt-3 py-2 text-sm bg-emerald-700 hover:bg-emerald-600 rounded-lg flex items-center justify-center gap-2">
+<i class="fa-solid fa-tools"></i> 開發領地（花費 150 金）
+</button>
+`;
+} else if (isBorder) {
+buttonsHTML = `
+<button onclick="attackTerritory(${index})" 
+class="w-full mt-3 py-2 text-sm bg-red-600 hover:bg-red-700 rounded-lg flex items-center justify-center gap-2">
+<i class="fa-solid fa-swords"></i> 出兵攻打
+</button>
+`;
+} else {
+buttonsHTML = `<div class="mt-3 text-xs text-center text-[#77c7ff]">非鄰接領地，無法直接攻打</div>`;
+}
+
+card.innerHTML = `
+<div class="flex justify-between items-start mb-2">
+<div>
+<div class="font-bold text-lg">${terr.name}</div>
+<div class="text-xs ${isPlayer ? "text-emerald-400" : "text-red-400"}">
+${isPlayer ? "我方領地" : "敵方領地"}
+</div>
+</div>
+<div class="text-right">
+<div class="text-xs">防禦力</div>
+<div class="font-bold text-xl">${terr.fortLevel}</div>
+</div>
+</div>
+
+<div class="grid grid-cols-2 gap-2 text-sm mb-3">
+<div class="bg-[#0f1620] p-2 rounded">
+<div class="text-xs text-[#77c7ff]">米生產</div>
+<div class="font-bold">${terr.riceProd} <span class="text-xs">/回合</span></div>
+</div>
+<div class="bg-[#0f1620] p-2 rounded">
+<div class="text-xs text-[#77c7ff]">金生產</div>
+<div class="font-bold">${terr.goldProd} <span class="text-xs">/回合</span></div>
+</div>
+</div>
+
+${buttonsHTML}
+`;
+
+grid.appendChild(card);
+});
+}
+
+function isBorderTerritory(terrId) {
+const terr = gameState.territories.find(t => t.id === terrId);
+if (!terr || terr.owner === "player") return false;
+
+return gameState.connections[terrId].some(connectedId => {
+const connected = gameState.territories.find(t => t.id === connectedId);
+return connected && connected.owner === "player";
+});
+}
+
+// ==================== ACTIONS ====================
+function developTerritory(index) {
+const terr = gameState.territories[index];
+if (terr.owner !== "player") return;
+
+if (gameState.gold < 150) {
+addLog("金錢不足，無法開發領地！", "defeat");
+return;
+}
+
+gameState.gold -= 150;
+terr.riceProd += 8;
+terr.goldProd += 5;
+terr.fortLevel += 3;
+
+addLog(`開發了「${terr.name}」！生產力與防禦力提升。`, "important");
+renderAll();
+}
+
+function recruitSoldiers() {
+if (gameState.gold < 120) {
+addLog("金錢不足，無法徵兵！", "defeat");
+return;
+}
+gameState.gold -= 120;
+gameState.soldiers += 40;
+addLog("徵召了 40 名新兵。兵力增加！", "normal");
+renderAll();
+}
+
+function trainTroops() {
+if (gameState.rice < 80 || gameState.gold < 60) {
+addLog("資源不足，無法訓練軍隊！", "defeat");
+return;
+}
+gameState.rice -= 80;
+gameState.gold -= 60;
+gameState.morale = Math.min(100, gameState.morale + 8);
+addLog("軍隊訓練完成，士氣提升！", "important");
+renderAll();
+}
+
+function attackTerritory(index) {
+const target = gameState.territories[index];
+if (target.owner === "player") return;
+
+const sent = prompt(`請輸入出兵數量（目前兵力：${gameState.soldiers}）：`, "80");
+if (!sent) return;
+
+const sentSoldiers = parseInt(sent);
+if (isNaN(sentSoldiers) || sentSoldiers <= 0 || sentSoldiers > gameState.soldiers) {
+addLog("出兵數量無效！", "defeat");
+return;
+}
+
+// Battle resolution
+resolveBattle(sentSoldiers, index);
+}
+
+function resolveBattle(sentSoldiers, targetIndex) {
+const target = gameState.territories[targetIndex];
+const attackerPower = sentSoldiers * (gameState.morale / 75) * (0.9 + Math.random() * 0.4);
+const defenderPower = target.fortLevel * 2.2 + (target.owner === "enemy" ? 30 : 0);
+
+gameState.soldiers -= Math.floor(sentSoldiers * 0.25); // base casualties
+
+let resultText = "";
+let type = "normal";
+
+if (attackerPower > defenderPower * 1.15) {
+// Big win
+target.owner = "player";
+gameState.gold += Math.floor(target.goldProd * 2);
+gameState.rice += Math.floor(target.riceProd * 1.5);
+gameState.morale = Math.min(100, gameState.morale + 5);
+resultText = `大勝！成功攻克「${target.name}」！獲得資源獎勵。`;
+type = "victory";
+} else if (attackerPower > defenderPower) {
+// Win
+target.owner = "player";
+gameState.gold += Math.floor(target.goldProd * 1.2);
+resultText = `勝利！攻下了「${target.name}」。`;
+type = "victory";
+} else {
+// Loss or draw
+gameState.soldiers -= Math.floor(sentSoldiers * 0.15);
+gameState.morale = Math.max(40, gameState.morale - 6);
+resultText = `攻打「${target.name}」失敗。部隊損失較重，士氣下降。`;
+type = "defeat";
+}
+
+addLog(resultText, type);
+checkWinCondition();
+renderAll();
+}
+
+function checkWinCondition() {
+const playerCount = gameState.territories.filter(t => t.owner === "player").length;
+if (playerCount >= 5) {
+setTimeout(() => {
+alert("🎉 恭喜！你成功統一了所有領地！\n戰國野望達成！");
+addLog("🎉 遊戲勝利！天下統一！", "victory");
+}, 800);
+}
+}
+
+// ==================== END TURN ====================
+function endTurn() {
+// 1. Income
+let incomeRice = 0;
+let incomeGold = 0;
+gameState.territories.forEach(t => {
+if (t.owner === "player") {
+incomeRice += t.riceProd;
+incomeGold += t.goldProd;
+}
+});
+
+// Autumn harvest bonus
+if (getCurrentSeason() === "秋") {
+incomeRice = Math.floor(incomeRice * 1.4);
+addLog("秋收豐碩！米糧收入增加 40%！", "important");
+}
+
+gameState.rice += incomeRice;
+gameState.gold += incomeGold;
+addLog(`本回合收入：米糧 +${incomeRice}、金錢 +${incomeGold}`, "normal");
+
+// 2. Soldier maintenance
+const maintenance = Math.floor(gameState.soldiers * 0.28);
+gameState.rice -= maintenance;
+if (gameState.rice < 0) {
+const deficit = Math.abs(gameState.rice);
+gameState.soldiers = Math.max(60, gameState.soldiers - Math.floor(deficit * 0.6));
+gameState.morale = Math.max(35, gameState.morale - 12);
+gameState.rice = 0;
+addLog(`兵糧不足！部隊減少，士氣大幅下降。`, "defeat");
+} else {
+addLog(`維持軍隊消耗米糧 ${maintenance}。`, "normal");
+}
+
+// 3. Enemy AI actions
+gameState.territories.forEach((terr, idx) => {
+if (terr.owner !== "player") {
+// Grow defense
+if (Math.random() < 0.38) {
+terr.fortLevel = Math.min(280, terr.fortLevel + 4 + Math.floor(Math.random() * 6));
+addLog(`「${terr.name}」的敵軍加強了防禦工事。`, "normal");
+}
+
+// Counter-attack on border
+if (isBorderTerritory(terr.id) && Math.random() < 0.22) {
+const playerConnected = gameState.connections[terr.id].filter(id => {
+const c = gameState.territories.find(t => t.id === id);
+return c && c.owner === "player";
+});
+
+if (playerConnected.length > 0) {
+const targetId = playerConnected[Math.floor(Math.random() * playerConnected.length)];
+const targetIndex = gameState.territories.findIndex(t => t.id === targetId);
+
+const enemyPower = terr.fortLevel * 1.8;
+const playerDefense = gameState.territories[targetIndex].fortLevel * 2.5 + gameState.soldiers * 0.35;
+
+if (enemyPower > playerDefense) {
+// Enemy conquers player territory
+gameState.territories[targetIndex].owner = "enemy";
+gameState.morale = Math.max(30, gameState.morale - 15);
+addLog(`⚠️ 「${terr.name}」的敵軍反擊成功，奪走了「${gameState.territories[targetIndex].name}」！`, "defeat");
+} else {
+addLog(`「${terr.name}」的敵軍試圖反擊，但被擊退。`, "important");
+}
+}
+}
+}
+});
+
+// 4. Advance season & turn
+gameState.seasonIndex = (gameState.seasonIndex + 1) % 4;
+if (gameState.seasonIndex === 0) gameState.year++;
+gameState.turn++;
+
+// Random event chance
+if (Math.random() < 0.15) {
+const eventType = Math.random();
+if (eventType < 0.5) {
+gameState.rice += 60;
+addLog("🌾 附近村落獻上貢米！米糧 +60", "important");
+} else {
+gameState.morale = Math.max(40, gameState.morale - 5);
+addLog("⚡ 軍中出現小規模動搖，士氣略降。", "defeat");
+}
+}
+
+addLog(`回合結束。進入 ${gameState.year} 年 ${getCurrentSeason()}。`, "normal");
+renderAll();
+}
+
+function renderAll() {
+updateDateDisplay();
+updateStatus();
+renderTerritories();
+}
+
+// ==================== RESTART ====================
+function restartGame() {
+if (!confirm("確定要重新開始遊戲嗎？")) return;
+
+gameState = {
+year: 1560,
+seasonIndex: 0,
+turn: 1,
+gold: 800,
+rice: 450,
+soldiers: 180,
+morale: 72,
+territories: [
+{ id: 1, name: "尾張", owner: "player", riceProd: 85, goldProd: 45, fortLevel: 25 },
+{ id: 2, name: "美濃", owner: "enemy", riceProd: 60, goldProd: 30, fortLevel: 18 },
+{ id: 3, name: "三河", owner: "enemy", riceProd: 55, goldProd: 28, fortLevel: 15 },
+{ id: 4, name: "遠江", owner: "enemy", riceProd: 50, goldProd: 25, fortLevel: 12 },
+{ id: 5, name: "駿河", owner: "enemy", riceProd: 70, goldProd: 35, fortLevel: 22 }
+],
+connections: {
+1: [2, 3],
+2: [1, 4],
+3: [1, 5],
+4: [2],
+5: [3]
+}
+};
+
+document.getElementById("log").innerHTML = "";
+addLog("新的一局開始了。你是尾張的領主，目標是統一周邊領地。", "important");
+renderAll();
+}
+
+// ==================== INIT ====================
+function initGame() {
+addLog("新的一局開始了。你是尾張的領主，目標是統一周邊領地。", "important");
+addLog("建議策略：先開發尾張增加收入，再逐步攻打美濃或三河。", "normal");
+renderAll();
+}
+
+// Start the game
+initGame();
+</script>
+</body>
+</html>
